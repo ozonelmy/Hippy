@@ -344,6 +344,7 @@
 	HippyBaseListViewCell *cell = (HippyBaseListViewCell *)[tableView dequeueReusableCellWithIdentifier: identifier];
     if (nil == cell) {
         cell = [[[self listViewCellClass] alloc] initWithStyle: UITableViewCellStyleDefault reuseIdentifier: identifier];
+        cell.tableView = tableView;
     }
     UIView *cellView = nil;
     if (cell.node.cell) {
