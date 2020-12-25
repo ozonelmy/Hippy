@@ -124,8 +124,8 @@ static NSMutableDictionary *mutableDictionaryForKey(NSString *key, BOOL *created
         }
         return dic;
     }
-    *created = NO;
-    return nil;
+    *created = YES;
+    return [[NSMutableDictionary alloc] initWithCapacity:16];
 }
 
 static dispatch_queue_t HippyGetMethodQueue()
