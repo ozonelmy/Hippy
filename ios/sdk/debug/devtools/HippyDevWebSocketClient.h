@@ -40,7 +40,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic, readonly)NSURL *devURL;
 @property(nonatomic, weak)id<HippyDevClientProtocol> delegate;
 
-- (instancetype)initWithDevIPAddress:(NSString *)ipAddress port:(NSString *)port;
+- (instancetype)initWithDevIPAddress:(NSString *)ipAddress port:(NSString *)port contextName:(NSString *)contextName;
 
 @end
 

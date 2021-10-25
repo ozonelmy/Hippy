@@ -474,13 +474,12 @@ HIPPY_NOT_IMPLEMENTED(-(instancetype)initWithDelegate
 
 - (void)setUpExecutor {
     [_javaScriptExecutor setUp];
-    [self setUpDevDebugClient];
 }
 
--(void)setUpDevDebugClient {
+- (void)setUpDevClientWithName:(NSString *)name {
     if (self.debugMode) {
         HippyBundleURLProvider *bundleURLProvider = [HippyBundleURLProvider sharedInstance];
-        _devClient = [[HippyDevWebSocketClient alloc] initWithDevIPAddress:bundleURLProvider.localhostIP port:bundleURLProvider.localhostPort];
+        _devClient = [[HippyDevWebSocketClient alloc] initWithDevIPAddress:bundleURLProvider.localhostIP port:bundleURLProvider.localhostPort contextName:name];
     }
 }
 

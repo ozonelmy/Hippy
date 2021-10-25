@@ -22,6 +22,28 @@ static NSString *generateRandomUUID() {
     return [NSString stringWithCString:buffer encoding:NSUTF8StringEncoding];
 }
 
+static const char *stringFromReadyState(HippySRReadyState state) {
+    const char *c_state;
+    switch (state) {
+        case HippySR_CONNECTING:
+            c_state = "connection";
+            break;
+        case HippySR_OPEN:
+            c_state = "open";
+            break;
+        case HippySR_CLOSING:
+            c_state = "closing";
+            break;
+        case HippySR_CLOSED:
+            c_state = "closed";
+            break;
+        default:
+            c_state = "state error";
+            break;
+    }
+    return c_state;
+}
+
 @interface HippyDevWebSocketClient ()<HippySRWebSocketDelegate> {
     NSURL *_devURL;
     dispatch_queue_t _devQueue;
@@ -34,13 +56,15 @@ static NSString *generateRandomUUID() {
 
 #pragma mark initialization methods
 
-- (instancetype)initWithDevIPAddress:(NSString *)ipAddress port:(NSString *)port {
+- (instancetype)initWithDevIPAddress:(NSString *)ipAddress port:(NSString *)port contextName:(NSString *)contextName {
     //ws://127.0.0.1:38989/debugger-proxy?clientId=123145124&platform=1&role=ios_client
     HippyAssertParam(ipAddress);
     self = [super init];
     if (self) {
         NSString *uuid = generateRandomUUID();
-        NSString *devAddress = [NSString stringWithFormat:@"ws://%@:%@/debugger-proxy?clientId=%@&platform=1&role=ios_client", ipAddress, port?:@"38989", uuid];
+        NSCharacterSet *allowedChar = [[NSCharacterSet characterSetWithCharactersInString:@"?!@#$^&%*+,:;='\"`<>()[]{}/\\| "] invertedSet];
+        NSString *encodeName = [contextName stringByAddingPercentEncodingWithAllowedCharacters:allowedChar];
+        NSString *devAddress = [NSString stringWithFormat:@"ws://%@:%@/debugger-proxy?clientId=%@&platform=1&role=ios_client&contextName=%@", ipAddress, port?:@"38989", uuid, encodeName];
         _devURL = [NSURL URLWithString:devAddress];
         [self setup];
     }
@@ -59,6 +83,12 @@ static NSString *generateRandomUUID() {
 #pragma mark property setter/getter
 - (NSURL *)devURL {
     return _devURL;
+}
+
+#pragma mask other methods
+- (NSString *)description {
+    NSString *desString = [NSString stringWithFormat:@"ws address %@, state %s", _devURL, stringFromReadyState(_devWebSocket.readyState)];
+    return [NSString stringWithFormat:@"%@, %@", [super description], desString];
 }
 
 #pragma mark dev websocket delegate methods
