@@ -9,6 +9,7 @@
 #import "HippyDevWebSocketClient.h"
 #import "HippySRWebSocket.h"
 #import "HippyAssert.h"
+#import "HippyLog.h"
 
 static NSString *generateRandomUUID() {
     static char alpha[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -66,6 +67,7 @@ static const char *stringFromReadyState(HippySRReadyState state) {
         NSString *encodeName = [contextName stringByAddingPercentEncodingWithAllowedCharacters:allowedChar];
         NSString *devAddress = [NSString stringWithFormat:@"ws://%@:%@/debugger-proxy?clientId=%@&platform=1&role=ios_client&contextName=%@", ipAddress, port?:@"38989", uuid, encodeName];
         _devURL = [NSURL URLWithString:devAddress];
+        HippyLog(@"[DevTools client]:try to connect to %@", devAddress);
         [self setup];
     }
     return self;
@@ -93,24 +95,28 @@ static const char *stringFromReadyState(HippySRReadyState state) {
 
 #pragma mark dev websocket delegate methods
 - (void)webSocket:(HippySRWebSocket *)webSocket didReceiveMessage:(id)message {
+    HippyLog(@"[DevTools client]:did receive message %@", message);
     if ([_delegate respondsToSelector:@selector(devClient:didReceiveMessage:)]) {
         [_delegate devClient:self didReceiveMessage:message];
     }
 }
 
 - (void)webSocketDidOpen:(HippySRWebSocket *)webSocket {
+    HippyLog(@"[DevTools client]:ws open %@", [self devURL]);
     if ([_delegate respondsToSelector:@selector(devClientDidConnect:)]) {
         [_delegate devClientDidConnect:self];
     }
 }
 
 - (void)webSocket:(HippySRWebSocket *)webSocket didFailWithError:(NSError *)error {
+    HippyLog(@"[DevTools client]:ws failed with error %@", error);
     if ([_delegate respondsToSelector:@selector(devClient:didFailWithError:)]) {
         [_delegate devClient:self didFailWithError:error];
     }
 }
 
 - (void)webSocket:(HippySRWebSocket *)webSocket didCloseWithCode:(NSInteger)code reason:(NSString *)reason wasClean:(BOOL)wasClean {
+    HippyLog(@"[DevTools client]:closed for reason %@", reason);
     if ([_delegate respondsToSelector:@selector(devClientDidClose:)]) {
         [_delegate devClientDidClose:self];
     }
