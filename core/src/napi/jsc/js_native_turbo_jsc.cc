@@ -225,26 +225,29 @@ std::shared_ptr<CtxValue> ObjcTurboEnv::CreateObject(const std::shared_ptr<HostO
 std::once_flag hostFunctionClassOnceFlag;
 JSClassRef hostFunctionClass{};
 
-std::shared_ptr<CtxValue> ObjcTurboEnv::CreateFunction( const std::shared_ptr<CtxValue> &name, int paramCount, HostFunctionType func) {
+std::shared_ptr <CtxValue> ObjcTurboEnv::CreateFunction(const std::shared_ptr <CtxValue> &name,
+                                                        int paramCount,
+                                                        HostFunctionType func) {
+  std::call_once(hostFunctionClassOnceFlag, []() {
+    JSClassDefinition functionClass = kJSClassDefinitionEmpty;
+    functionClass.version = 0;
+    functionClass.attributes = kJSClassAttributeNoAutomaticPrototype;
+    functionClass.initialize = HostFunctionProxy::initialize;
+    functionClass.finalize = HostFunctionProxy::finalize;
+    functionClass.callAsFunction = HostFunctionProxy::call;
+    hostFunctionClass = JSClassCreate(&functionClass);
+  });
 
-    std::call_once(hostFunctionClassOnceFlag, []() {
-        JSClassDefinition functionClass = kJSClassDefinitionEmpty;
-        functionClass.version = 0;
-        functionClass.attributes = kJSClassAttributeNoAutomaticPrototype;
-        functionClass.initialize = HostFunctionProxy::initialize;
-        functionClass.finalize = HostFunctionProxy::finalize;
-        functionClass.callAsFunction = HostFunctionProxy::call;
-        hostFunctionClass = JSClassCreate(&functionClass);
-    });
+  std::shared_ptr <JSCCtx> context = std::static_pointer_cast<JSCCtx>(context_);
+  auto jscName = std::static_pointer_cast<JSCCtxValue>(name);
+  JSStringRef nameRef = JSValueToStringCopy(context->context_, jscName->value_, nullptr);
+  JSObjectRef funcRef = JSObjectMake(context->context_,
+                                     hostFunctionClass,
+                                     new HostFunctionProxy(*this, func, paramCount, nameRef));
+  JSStringRelease(nameRef);
 
-    auto jscName = std::static_pointer_cast<JSCCtxValue>(name);
-    JSStringRef nameRef = (JSStringRef)(jscName->value_);
-
-    std::shared_ptr<JSCCtx> context = std::static_pointer_cast<JSCCtx>(context_);
-    JSObjectRef funcRef = JSObjectMake(context->context_, hostFunctionClass, new HostFunctionProxy(*this, func, paramCount, nameRef));
-
-    auto jscValue = std::make_shared<JSCCtxValue>(context->context_, funcRef);
-    return jscValue;
+  auto jscValue = std::make_shared<JSCCtxValue>(context->context_, funcRef);
+  return jscValue;
 }
 
 }  // namespace napi
