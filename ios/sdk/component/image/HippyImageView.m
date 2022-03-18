@@ -153,7 +153,8 @@ UIImage *HippyBlurredImageWithRadiusv(UIImage *inputImage, CGFloat radius, NSErr
         tempBuffer = NULL;
 
         CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
-        CGBitmapInfo bitmapInfo = kCGBitmapByteOrderDefault;
+        CGBitmapInfo bitmapInfoMasked = CGImageGetBitmapInfo(imageRef);
+        CGBitmapInfo bitmapInfo = bitmapInfoMasked & kCGBitmapByteOrderMask;
         CGImageAlphaInfo alphaInfo = CGImageGetAlphaInfo(imageRef);
         if (alphaInfo == kCGImageAlphaNone || alphaInfo == kCGImageAlphaOnly) {
             alphaInfo = kCGImageAlphaNoneSkipFirst;
