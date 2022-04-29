@@ -1,16 +1,21 @@
 import React from 'react';
 import {
   ScrollView,
-  Text,
   Image,
   StyleSheet,
 } from '@hippy/react';
 
 // Import the image to base64 for defaultSource props.
 import defaultSource from './defaultSource.jpg';
-import HippyLogoImg from './hippyLogoWhite.png';
+// import HippyLogoImg from './hippyLogoWhite.png';
 
-const imageUrl = 'https://user-images.githubusercontent.com/12878546/148736102-7cd9525b-aceb-41c6-a905-d3156219ef16.png';
+// const imageUrl = 'https://user-images.githubusercontent.com/12878546/148736102-7cd9525b-aceb-41c6-a905-d3156219ef16.png';
+const avif1 = 'https://static-gamecenter-1251316161.cos.ap-guangzhou.myqcloud.com/test/21.gif?useavif=1&ci-style=avif&imageMogr2/';
+const avif2 = 'https://static-gamecenter-1251316161.cos.ap-guangzhou.myqcloud.com/test/20.gif?useavif=1&ci-style=avif&imageMogr2/';
+const avif3 = 'https://static-gamecenter-1251316161.cos.ap-guangzhou.myqcloud.com/test/22.gif?useavif=1&ci-style=avif&imageMogr2/';
+const avif4 = 'https://static-gamecenter-1251316161.cos.ap-guangzhou.myqcloud.com/test/32.gif?useavif=1&ci-style=avif&imageMogr2/';
+const avif5 = 'https://static-gamecenter-1251316161.cos.ap-guangzhou.myqcloud.com/test/33.gif?useavif=1&ci-style=avif&imageMogr2/';
+const avif6 = 'https://static-gamecenter-1251316161.cos.ap-guangzhou.myqcloud.com/test/34.gif?useavif=1&ci-style=avif&imageMogr2/';
 
 const styles = StyleSheet.create({
   container_style: {
@@ -35,68 +40,64 @@ const styles = StyleSheet.create({
 export default function ImageExpo() {
   return (
     <ScrollView style={styles.container_style}>
-      <Text style={styles.info_style}>Contain:</Text>
-      <Image
-        style={[styles.image_style]}
-        resizeMode={Image.resizeMode.cover}
-        defaultSource={defaultSource}
-        source={{ uri: imageUrl }}
-        onProgress={(e) => {
-          console.log('onProgress', e);
-        }}
-        onLoadStart={() => {
-          console.log('image onloadStart');
-        }}
-        onLoad={() => {
-          console.log('image onLoad');
-        }}
-        onError={(e) => {
-          console.log('image onError', e);
-        }}
-        onLoadEnd={() => {
-          console.log('image onLoadEnd');
-        }}
-      />
-      <Text style={styles.info_style}>Cover:</Text>
-      <Image
-        style={[styles.image_style]}
-        defaultSource={defaultSource}
-        source={{ uri: imageUrl }}
-        resizeMode={Image.resizeMode.cover}
-      />
-      <Text style={styles.info_style}>Center:</Text>
-      <Image
-        style={[styles.image_style]}
-        defaultSource={defaultSource}
-        source={{ uri: imageUrl }}
-        resizeMode={Image.resizeMode.center}
-      />
-      <Text style={styles.info_style}>CapInsets:</Text>
-      <Image
-        style={[styles.image_style]}
-        defaultSource={defaultSource}
-        source={{ uri: imageUrl }}
-        capInsets={{
-          top: 50,
-          left: 50,
-          bottom: 50,
-          right: 50,
-        }}
-        resizeMode={Image.resizeMode.cover}
-      />
-      <Text style={styles.info_style}>TintColor:</Text>
-      <Image
-        style={[styles.image_style, { tintColor: '#4c9afa99' }]}
-        defaultSource={defaultSource}
-        source={{ uri: HippyLogoImg }}
-        resizeMode={Image.resizeMode.center}
-      />
-      <Text style={styles.info_style}>Cover GIF:</Text>
       <Image
         style={[styles.image_style]}
         resizeMode={Image.resizeMode.cover}
         defaultSource={defaultSource}
         source={{ uri: 'https://user-images.githubusercontent.com/12878546/148736255-7193f89e-9caf-49c0-86b0-548209506bd6.gif' }}
+        onLoadEnd={() => {
+          console.log('gif onLoadEnd');
+        }}
+      />
+
+
+      <Image
+        style={[styles.image_style]}
+        resizeMode={Image.resizeMode.cover}
+        defaultSource={defaultSource}
+        source={{ uri: avif1 }}
+      />
+      <Image
+        style={[styles.image_style]}
+        resizeMode={Image.resizeMode.cover}
+        defaultSource={defaultSource}
+        source={{ uri: avif2 }}
+        onLoadEnd={() => {
+          console.log('gif onLoadEnd');
+        }}
+      />
+      <Image
+        style={[styles.image_style]}
+        resizeMode={Image.resizeMode.cover}
+        defaultSource={defaultSource}
+        source={{ uri: avif3 }}
+        onLoadEnd={() => {
+          console.log('gif onLoadEnd');
+        }}
+      />
+      <Image
+        style={[styles.image_style]}
+        resizeMode={Image.resizeMode.cover}
+        defaultSource={defaultSource}
+        source={{ uri: avif4 }}
+        onLoadEnd={() => {
+          console.log('gif onLoadEnd');
+        }}
+      />
+      <Image
+        style={[styles.image_style]}
+        resizeMode={Image.resizeMode.cover}
+        defaultSource={defaultSource}
+        source={{ uri: avif5 }}
+        onLoadEnd={() => {
+          console.log('gif onLoadEnd');
+        }}
+      />
+      <Image
+        style={[styles.image_style]}
+        resizeMode={Image.resizeMode.cover}
+        defaultSource={defaultSource}
+        source={{ uri: avif6 }}
         onLoadEnd={() => {
           console.log('gif onLoadEnd');
         }}

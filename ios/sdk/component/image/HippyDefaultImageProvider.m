@@ -113,6 +113,7 @@ HIPPY_EXPORT_MODULE(defaultImageProvider)
 }
 
 - (UIImage *)imageAtFrame:(NSUInteger)index {
+//    NSLog(@"avif load time %f for frame %d", CACurrentMediaTime(), index);
     if (_imageSourceRef) {
         CGImageRef imageRef = CGImageSourceCreateImageAtIndex(_imageSourceRef, index, NULL);
         UIImage *image = [UIImage imageWithCGImage:imageRef];

@@ -122,7 +122,7 @@
         if (self.shouldAnimate) {
             [self startAnimating];
         }
-
+        NSLog(@"avif load setNeedsDisplay1 %f", CACurrentMediaTime());
         [self.layer setNeedsDisplay];
     }
 }
@@ -284,6 +284,7 @@ static NSUInteger gcd(NSUInteger a, NSUInteger b) {
             const NSTimeInterval kDisplayRefreshRate = 60.0; // 60Hz
             self.displayLink.frameInterval = MAX([self frameDelayGreatestCommonDivisor] * kDisplayRefreshRate, 1);
         }
+        NSLog(@"avif load setNeedsDisplay2 %f", CACurrentMediaTime());
         [self.layer setNeedsDisplay];
         self.displayLink.paused = NO;
     } else {
@@ -355,6 +356,7 @@ static NSUInteger gcd(NSUInteger a, NSUInteger b) {
             RAILog(RAILogLevelVerbose, @"Showing frame %lu for animated image: %@", (unsigned long)self.currentFrameIndex, self.animatedImage);
             self.currentFrame = image;
             if (self.needsDisplayWhenImageBecomesAvailable) {
+                NSLog(@"avif load setNeedsDisplay3 %f", CACurrentMediaTime());
                 [self.layer setNeedsDisplay];
                 self.needsDisplayWhenImageBecomesAvailable = NO;
             }
@@ -402,6 +404,7 @@ static NSUInteger gcd(NSUInteger a, NSUInteger b) {
 #pragma mark Providing the Layer's Content
 
 - (void)displayLayer:(CALayer *)layer {
+    NSLog(@"avif load display %f", CACurrentMediaTime());
     if (self.animatedImage) {
         UIImage *image = self.image;
         layer.contents = (__bridge id)image.CGImage;

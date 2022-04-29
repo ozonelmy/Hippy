@@ -1,14 +1,14 @@
 import React from 'react';
 import { withRouter } from 'react-router-dom';
 import HippyReact, {
-  Image,
+  // Image,
   Platform,
   StyleSheet,
   Text,
   View,
 } from '@hippy/react';
 
-import BACK_ICON from './back-icon.png';
+// import BACK_ICON from './back-icon.png';
 
 const SKIN_COLOR = {
   mainLight: '#4c9afa',
@@ -65,10 +65,10 @@ const Header = ({ history, route }) => {
         onClick={() => history.goBack()}
         style={[styles.headerButton, Platform.OS === 'ios' ? null : { marginLeft: 20 }]}
       >
-        <Image
+        {/* <Image
           style={styles.backIcon}
           source={{ uri: BACK_ICON }}
-        />
+        /> */}
       </View>
       <View style={styles.headerButton}>
         <Text numberOfLines={1} style={styles.title}>

@@ -194,6 +194,12 @@
 		B21E4B452708680900B6A3ED /* TurboConfig.m in Sources */ = {isa = PBXBuildFile; fileRef = B21E4B412708680900B6A3ED /* TurboConfig.m */; };
 		B21E4B462708680900B6A3ED /* TurboBaseModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = B21E4B432708680900B6A3ED /* TurboBaseModule.mm */; };
 		F405949A2733C4A900157225 /* HippySRSIMDHelpers.m in Sources */ = {isa = PBXBuildFile; fileRef = F40594982733C4A900157225 /* HippySRSIMDHelpers.m */; };
+		F407567C281A43E900DD084A /* libdav1d.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F407566F281A43E900DD084A /* libdav1d.a */; };
+		F407567D281A43E900DD084A /* libavif.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F4075670281A43E900DD084A /* libavif.a */; };
+		F407567E281A43E900DD084A /* ColorSpace.m in Sources */ = {isa = PBXBuildFile; fileRef = F4075673281A43E900DD084A /* ColorSpace.m */; };
+		F407567F281A43E900DD084A /* GCAVIFDecoder.m in Sources */ = {isa = PBXBuildFile; fileRef = F4075674281A43E900DD084A /* GCAVIFDecoder.m */; };
+		F4075680281A43E900DD084A /* GCAVIFImageProvider.m in Sources */ = {isa = PBXBuildFile; fileRef = F4075676281A43E900DD084A /* GCAVIFImageProvider.m */; };
+		F4075681281A43E900DD084A /* Conversion.m in Sources */ = {isa = PBXBuildFile; fileRef = F407567B281A43E900DD084A /* Conversion.m */; };
 		F417B54D2727ACCE00894090 /* HippyDevManager.m in Sources */ = {isa = PBXBuildFile; fileRef = F417B54C2727ACCE00894090 /* HippyDevManager.m */; };
 		F417B5532727B31200894090 /* HippyDevCommand.m in Sources */ = {isa = PBXBuildFile; fileRef = F417B5522727B31200894090 /* HippyDevCommand.m */; };
 		F43BE80F26733F620080999C /* HippyNetInfoIntenal.m in Sources */ = {isa = PBXBuildFile; fileRef = F43BE80E26733F620080999C /* HippyNetInfoIntenal.m */; };
@@ -617,6 +623,18 @@
 		B2C1237A278C0C140081B8AF /* DemoConfigs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DemoConfigs.h; sourceTree = "<group>"; };
 		F40594982733C4A900157225 /* HippySRSIMDHelpers.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HippySRSIMDHelpers.m; sourceTree = "<group>"; };
 		F40594992733C4A900157225 /* HippySRSIMDHelpers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HippySRSIMDHelpers.h; sourceTree = "<group>"; };
+		F407566F281A43E900DD084A /* libdav1d.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libdav1d.a; sourceTree = "<group>"; };
+		F4075670281A43E900DD084A /* libavif.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libavif.a; sourceTree = "<group>"; };
+		F4075672281A43E900DD084A /* internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = internal.h; sourceTree = "<group>"; };
+		F4075673281A43E900DD084A /* ColorSpace.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ColorSpace.m; sourceTree = "<group>"; };
+		F4075674281A43E900DD084A /* GCAVIFDecoder.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GCAVIFDecoder.m; sourceTree = "<group>"; };
+		F4075675281A43E900DD084A /* Conversion.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Conversion.h; sourceTree = "<group>"; };
+		F4075676281A43E900DD084A /* GCAVIFImageProvider.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GCAVIFImageProvider.m; sourceTree = "<group>"; };
+		F4075677281A43E900DD084A /* avif.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = avif.h; sourceTree = "<group>"; };
+		F4075678281A43E900DD084A /* GCAVIFDecoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GCAVIFDecoder.h; sourceTree = "<group>"; };
+		F4075679281A43E900DD084A /* ColorSpace.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ColorSpace.h; sourceTree = "<group>"; };
+		F407567A281A43E900DD084A /* GCAVIFImageProvider.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GCAVIFImageProvider.h; sourceTree = "<group>"; };
+		F407567B281A43E900DD084A /* Conversion.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Conversion.m; sourceTree = "<group>"; };
 		F417B54B2727ACCE00894090 /* HippyDevManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HippyDevManager.h; sourceTree = "<group>"; };
 		F417B54C2727ACCE00894090 /* HippyDevManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = HippyDevManager.m; sourceTree = "<group>"; };
 		F417B5512727B31200894090 /* HippyDevCommand.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HippyDevCommand.h; sourceTree = "<group>"; };
@@ -639,6 +657,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F407567C281A43E900DD084A /* libdav1d.a in Frameworks */,
+				F407567D281A43E900DD084A /* libavif.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -679,6 +699,9 @@
 		0612F01523A8BE320079E622 = {
 			isa = PBXGroup;
 			children = (
+				F4075670281A43E900DD084A /* libavif.a */,
+				F407566F281A43E900DD084A /* libdav1d.a */,
+				F4075671281A43E900DD084A /* QQGameCenterAVIF */,
 				85BCD3BC2578C57F00638DB4 /* core */,
 				AC63515223F922E5007FABA5 /* fonts */,
 				064C5AEF23AB1A70001E80DD /* res */,
@@ -1635,6 +1658,23 @@
 			path = turbomodule;
 			sourceTree = "<group>";
 		};
+		F4075671281A43E900DD084A /* QQGameCenterAVIF */ = {
+			isa = PBXGroup;
+			children = (
+				F4075672281A43E900DD084A /* internal.h */,
+				F4075673281A43E900DD084A /* ColorSpace.m */,
+				F4075674281A43E900DD084A /* GCAVIFDecoder.m */,
+				F4075675281A43E900DD084A /* Conversion.h */,
+				F4075676281A43E900DD084A /* GCAVIFImageProvider.m */,
+				F4075677281A43E900DD084A /* avif.h */,
+				F4075678281A43E900DD084A /* GCAVIFDecoder.h */,
+				F4075679281A43E900DD084A /* ColorSpace.h */,
+				F407567A281A43E900DD084A /* GCAVIFImageProvider.h */,
+				F407567B281A43E900DD084A /* Conversion.m */,
+			);
+			path = QQGameCenterAVIF;
+			sourceTree = "<group>";
+		};
 		F4E2AD76271FBF2900E36EFB /* devtools */ = {
 			isa = PBXGroup;
 			children = (
@@ -1736,6 +1776,7 @@
 				06FF8EEF2511C20900C03900 /* NSData+DataType.m in Sources */,
 				85B77BFB2656BA8900303472 /* js_value_wrapper.cc in Sources */,
 				85BCD4582578C58000638DB4 /* engine.cc in Sources */,
+				F407567F281A43E900DD084A /* GCAVIFDecoder.m in Sources */,
 				064C5A4923AB1A51001E80DD /* HippyEventDispatcher.m in Sources */,
 				064C5A0123AB1A51001E80DD /* HippyExceptionModule.m in Sources */,
 				064C59EE23AB1A51001E80DD /* MTTTStyle.cpp in Sources */,
@@ -1838,12 +1879,14 @@
 				06FF8BD62511BC0400C03900 /* HippyImageProviderProtocol.m in Sources */,
 				064C5A2723AB1A51001E80DD /* HippyShadowView.mm in Sources */,
 				064C5A4223AB1A51001E80DD /* HippyUtils.m in Sources */,
+				F4075681281A43E900DD084A /* Conversion.m in Sources */,
 				064C5A0A23AB1A51001E80DD /* HippyRefreshWrapper.m in Sources */,
 				064C59F423AB1A51001E80DD /* HippyExtAnimation+Value.m in Sources */,
 				064C5A0823AB1A51001E80DD /* HippyRefreshWrapperItemView.m in Sources */,
 				064C5A3723AB1A51001E80DD /* HippyModalHostViewController.m in Sources */,
 				064C59F223AB1A51001E80DD /* HippyNetWork.m in Sources */,
 				854FC5E3262F0D88002EAD41 /* log_settings_state.cc in Sources */,
+				F407567E281A43E900DD084A /* ColorSpace.m in Sources */,
 				064C5A0523AB1A51001E80DD /* HippyClipboardModule.m in Sources */,
 				F45D1BDD26B1555E004010EE /* HippyI18nUtils.m in Sources */,
 				787C199E2726A1020062EBFF /* HippyDomModel.m in Sources */,
@@ -1895,6 +1938,7 @@
 				064C5A5423AB1A51001E80DD /* HippyBridge+LocalFileSource.m in Sources */,
 				06868AF925CA4A6B0024A0BA /* HippyDeviceBaseInfo.m in Sources */,
 				064C59FD23AB1A51001E80DD /* HippyAsyncLocalStorage.m in Sources */,
+				F4075680281A43E900DD084A /* GCAVIFImageProvider.m in Sources */,
 				787C199F2726A1020062EBFF /* HippyPageDomain.m in Sources */,
 				06F3E3E025A5D867007934F6 /* HippyListTableView.m in Sources */,
 				064C5A5923AB1A51001E80DD /* HippyDisplayLink.m in Sources */,
@@ -2045,6 +2089,10 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.tencent.HippyDemo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -2070,6 +2118,10 @@
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.tencent.HippyDemo;
 				PRODUCT_NAME = "$(TARGET_NAME)";

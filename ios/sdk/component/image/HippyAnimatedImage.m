@@ -167,7 +167,7 @@ static NSHashTable *allAnimatedImagesWeak;
 }
 
 - (instancetype)initWithAnimatedImageProvider:(id<HippyImageProviderProtocol>)imageProvider {
-    return [self initWithAnimatedImageProvider:imageProvider optimalFrameCacheSize:9 predrawingEnabled:NO];
+    return [self initWithAnimatedImageProvider:imageProvider optimalFrameCacheSize:64 predrawingEnabled:NO];
 }
 
 - (instancetype)initWithAnimatedImageProvider:(id<HippyImageProviderProtocol>)imageProvider
@@ -197,11 +197,17 @@ static NSHashTable *allAnimatedImagesWeak;
 
         NSUInteger skippedFrameCount = 0;
         NSMutableDictionary *delayTimesForIndexesMutable = [NSMutableDictionary dictionaryWithCapacity:imageCount];
+        double loopBegin = CACurrentMediaTime();
+        NSLog(@"avif load loop begin time %f", loopBegin);
+        double addBegin = 0;
         for (NSUInteger i = 0; i < imageCount; i++) {
             @autoreleasepool {
                 UIImage *frameImage = nil;
                 if ([imageProvider respondsToSelector:@selector(imageAtFrame:)]) {
+                    double imageGetBegin = CACurrentMediaTime();
                     frameImage = [imageProvider imageAtFrame:i];
+                    double imageGetEnd = CACurrentMediaTime() - imageGetBegin;
+                    addBegin+=imageGetEnd;
                 }
                 // Check for valid `frameImage` before parsing its properties as frames can be corrupted (and `frameImage` even `nil` when
                 // `frameImageRef` was valid).
@@ -251,6 +257,12 @@ static NSHashTable *allAnimatedImagesWeak;
                 }
             }
         }
+        double loopEnd = CACurrentMediaTime();
+        NSLog(@"avif load loop begin time %f, cost %f", loopEnd, loopEnd - loopBegin);
+        
+        NSLog(@"avif load get image cost %f %d times", addBegin, imageCount);
+
+        
         _delayTimesForIndexes = [delayTimesForIndexesMutable copy];
         _frameCount = imageCount;
 
@@ -703,9 +715,12 @@ static NSHashTable *allAnimatedImagesWeak;
     // Purge frames that are currently cached but don't need to be.
     // But not if we're still under the number of frames to cache.
     // This way, if all frames are allowed to be cached (the common case), we can skip all the `NSIndexSet` math below.
-    if ([self.cachedFrameIndexes count] > self.frameCacheSizeCurrent) {
+    NSUInteger cachedFrameIndexesCount = [self.cachedFrameIndexes count];
+    NSUInteger frameCacheSizeCurrent = self.frameCacheSizeCurrent;
+    if (cachedFrameIndexesCount > frameCacheSizeCurrent) {
         NSMutableIndexSet *indexesToPurge = [self.cachedFrameIndexes mutableCopy];
-        [indexesToPurge removeIndexes:[self frameIndexesToCache]];
+        NSIndexSet *frameIndexesToCache = [self frameIndexesToCache];
+        [indexesToPurge removeIndexes:frameIndexesToCache];
         [indexesToPurge enumerateRangesUsingBlock:^(NSRange range, BOOL *stop) {
             // Iterate through contiguous indexes; can be faster than `enumerateIndexesInRange:options:usingBlock:`.
             for (NSUInteger i = range.location; i < NSMaxRange(range); i++) {

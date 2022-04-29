@@ -516,6 +516,8 @@ NSError *imageErrorFromParams(NSInteger errorCode, NSString *errorDescription) {
                 if (_task) {
                     [self cancelImageLoad];
                 }
+                double begin = CACurrentMediaTime();
+                NSLog(@"avif load begin %f", begin);
                 NSURLSessionConfiguration *sessionConfiguration = [NSURLSessionConfiguration ephemeralSessionConfiguration];
                 NSURLSession *session = [NSURLSession sessionWithConfiguration:sessionConfiguration delegate:self delegateQueue:hippy_image_queue()];
                 _task = [session dataTaskWithURL:source_url];
@@ -581,6 +583,7 @@ NSError *imageErrorFromParams(NSInteger errorCode, NSString *errorDescription) {
 }
 
 - (void)URLSession:(__unused NSURLSession *)session task:(nonnull NSURLSessionTask *)task didCompleteWithError:(nullable NSError *)error {
+    NSLog(@"avif load end %f", CACurrentMediaTime());
     if (_task == task) {
         NSString *urlString = [[[task originalRequest] URL] absoluteString];
         if (!error) {
@@ -594,6 +597,7 @@ NSError *imageErrorFromParams(NSInteger errorCode, NSString *errorDescription) {
                     }
                     _animatedImageOperation = [[HippyAnimatedImageOperation alloc] initWithAnimatedImageProvider:instance imageView:self
                                                                                                         imageURL:urlString];
+                    NSLog(@"avif load add operation %f", CACurrentMediaTime());
                     [animated_image_queue() addOperation:_animatedImageOperation];
                 } else {
                     UIImage *image = [self imageFromData:_data];
@@ -914,6 +918,7 @@ HIPPY_ENUM_CONVERTER(HippyResizeMode, (@{
 }
 
 - (void)main {
+    NSLog(@"avif load begin main %f", CACurrentMediaTime());
     if (![self isCancelled] && (_animatedImageData || _imageProvider) && _imageView) {
         HippyAnimatedImage *animatedImage = nil;
         if (_imageProvider) {
@@ -925,6 +930,7 @@ HIPPY_ENUM_CONVERTER(HippyResizeMode, (@{
             __weak HippyImageView *wIV = _imageView;
             __weak NSString *wURL = _url;
             dispatch_async(dispatch_get_main_queue(), ^{
+                NSLog(@"avif load begin dispatch main %f", CACurrentMediaTime());
                 HippyImageView *sIV = wIV;
                 NSString *sURL = wURL;
                 [sIV loadImage:animatedImage.posterImage url:sURL error:nil needBlur:YES needCache:NO];

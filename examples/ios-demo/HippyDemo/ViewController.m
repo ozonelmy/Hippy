@@ -48,7 +48,7 @@
 
     
 //release macro below if use debug mode
-//#define HIPPYDEBUG
+#define HIPPYDEBUG
     
 #ifdef HIPPYDEBUG
     NSDictionary *launchOptions = @{@"EnableTurbo": @(DEMO_ENABLE_TURBO), @"DebugMode": @(YES)};
