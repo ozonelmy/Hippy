@@ -228,11 +228,25 @@ NSString *const NativeRenderShadowViewDiffTag = @"NativeRenderShadowViewDiffTag"
     [self dirtyPropagation];
 }
 
+- (void)insertNativerenderSubviews:(NSArray<id<NativeRenderComponentProtocol>> *)subviews atIndices:(NSIndexSet *)indexSet {
+    [_objectSubviews insertObjects:subviews atIndexes:indexSet];
+    for (NativeRenderObjectView *subview in subviews) {
+        subview->_superview = self;
+    }
+    [self dirtyText];
+    [self dirtyPropagation];
+}
+
 - (void)moveNativeRenderSubview:(id<NativeRenderComponentProtocol>)subview toIndex:(NSInteger)atIndex {
     if ([_objectSubviews containsObject:subview]) {
         [_objectSubviews removeObject:subview];
     }
     [self insertNativeRenderSubview:subview atIndex:atIndex];
+}
+
+- (void)moveNativeRenderSubviews:(NSArray<id<NativeRenderComponentProtocol>> *)subviews toIndices:(NSIndexSet *)indexSet {
+    [_objectSubviews removeObjectsInArray:subviews];
+    [self insertNativerenderSubviews:subviews atIndices:indexSet];
 }
 
 - (void)removeNativeRenderSubview:(NativeRenderObjectView *)subview {

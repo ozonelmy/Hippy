@@ -747,11 +747,15 @@ NSString *const NativeRenderUIManagerDidEndBatchNotification = @"NativeRenderUIM
     }
     [manager enumerateViewsHierarchy:^(int32_t tag, const std::vector<int32_t> &subviewTags, const std::vector<int32_t> &subviewIndices) {
         NSAssert(subviewTags.size() == subviewIndices.size(), @"subviewTags count must be equal to subviewIndices count");
+        NSMutableArray<NativeRenderObjectView *> *createdObjects = [NSMutableArray arrayWithCapacity:32];
+        NSMutableIndexSet *indexSets = [NSMutableIndexSet indexSet];
         NativeRenderObjectView *superRenderObject = [self->_renderObjectRegistry componentForTag:@(tag) onRootTag:rootNodeTag];
         for (NSUInteger index = 0; index < subviewTags.size(); index++) {
             NativeRenderObjectView *subRenderObject = [self->_renderObjectRegistry componentForTag:@(subviewTags[index]) onRootTag:rootNodeTag];
-            [superRenderObject insertNativeRenderSubview:subRenderObject atIndex:subviewIndices[index]];
+            [createdObjects addObject:subRenderObject];
+            [indexSets addIndex:subviewIndices[index]];
         }
+        [superRenderObject insertNativerenderSubviews:createdObjects atIndices:indexSets];
     }];
     for (const std::shared_ptr<DomNode> &node : nodes) {
         NSNumber *componentTag = @(node->GetId());
@@ -771,10 +775,17 @@ NSString *const NativeRenderUIManagerDidEndBatchNotification = @"NativeRenderUIM
         if (NativeRenderCreationTypeInstantly == [renderObject creationType] && !self->_uiCreationLazilyEnabled) {
             [self addUIBlock:^(NativeRenderImpl *renderContext, NSDictionary<NSNumber *,__kindof UIView *> *viewRegistry) {
                 UIView *superView = viewRegistry[@(tag)];
+                NSMutableArray<UIView *> *createdViews = [NSMutableArray arrayWithCapacity:subViewTags_.size()];
+                NSMutableIndexSet *indexSets = [NSMutableIndexSet indexSet];
                 for (NSUInteger index = 0; index < subViewTags_.size(); index++) {
-                    UIView *subview = viewRegistry[@(subViewTags_[index])];
-                    [superView insertNativeRenderSubview:subview atIndex:subViewIndices_[index]];
+                    int32_t subTag = subViewTags_[index];
+                    UIView *subview = viewRegistry[@(subTag)];
+                    if (subview) {
+                        [createdViews addObject:subview];
+                        [indexSets addIndex:subViewIndices_[index]];
+                    }
                 }
+                [superView insertNativerenderSubviews:createdViews atIndices:indexSets];
                 [superView clearSortedSubviews];
                 [superView didUpdateNativeRenderSubviews];
             }];
@@ -875,12 +886,16 @@ NSString *const NativeRenderUIManagerDidEndBatchNotification = @"NativeRenderUIM
                                                                           onRootTag:@(rootTag)];
     NativeRenderObjectView *toObjectView = [_renderObjectRegistry componentForTag:@(toContainer)
                                                                         onRootTag:@(rootTag)];
+    NSMutableArray<NativeRenderObjectView *> *objectViews = [NSMutableArray arrayWithCapacity:ids.size()];
+    NSMutableIndexSet *indexSet = [NSMutableIndexSet indexSet];
     for (int32_t componentTag : ids) {
         NativeRenderObjectView *view = [_renderObjectRegistry componentForTag:@(componentTag) onRootTag:@(rootTag)];
         HPAssert(fromObjectView == [view parentComponent], @"parent of object view with tag %d is not object view with tag %d", componentTag, fromContainer);
         [view removeFromNativeRenderSuperview];
-        [toObjectView insertNativeRenderSubview:view atIndex:index];
+        [objectViews addObject:view];
+        [indexSet addIndex:index];
     }
+    [toObjectView insertNativerenderSubviews:objectViews atIndices:indexSet];
     [fromObjectView dirtyPropagation];
     [toObjectView dirtyPropagation];
     [fromObjectView didUpdateNativeRenderSubviews];
@@ -889,6 +904,8 @@ NSString *const NativeRenderUIManagerDidEndBatchNotification = @"NativeRenderUIM
     [self addUIBlock:^(NativeRenderImpl *renderContext, NSDictionary<NSNumber *,__kindof UIView *> *viewRegistry) {
         UIView *fromView = [viewRegistry objectForKey:@(fromContainer)];
         UIView *toView = [viewRegistry objectForKey:@(toContainer)];
+        NSMutableArray<UIView *> *views = [NSMutableArray arrayWithCapacity:strongTags.size()];
+        NSMutableIndexSet *indexSet = [NSMutableIndexSet indexSet];
         for (int32_t tag : strongTags) {
             UIView *view = [viewRegistry objectForKey:@(tag)];
             if (!view) {
@@ -896,8 +913,10 @@ NSString *const NativeRenderUIManagerDidEndBatchNotification = @"NativeRenderUIM
             }
             HPAssert(fromView == [view parentComponent], @"parent of object view with tag %d is not object view with tag %d", tag, fromContainer);
             [view removeFromNativeRenderSuperview];
-            [toView insertNativeRenderSubview:view atIndex:index];
+            [views addObject:view];
+            [indexSet addIndex:index];
         }
+        [toView insertNativerenderSubviews:views atIndices:indexSet];
         [fromView clearSortedSubviews];
         [fromView didUpdateNativeRenderSubviews];
         [toView clearSortedSubviews];
@@ -913,6 +932,8 @@ NSString *const NativeRenderUIManagerDidEndBatchNotification = @"NativeRenderUIM
     }
     int32_t rootTag = strongRootNode->GetId();
     std::lock_guard<std::mutex> lock([self renderQueueLock]);
+    NSMutableArray<NativeRenderObjectView *> *objectViews = [NSMutableArray arrayWithCapacity:nodes.size()];
+    NSMutableIndexSet *indexSet = [NSMutableIndexSet indexSet];
     NativeRenderObjectView *parentObjectView = nil;
     for (auto &node : nodes) {
         int32_t index = node->GetRenderInfo().index;
@@ -923,14 +944,18 @@ NSString *const NativeRenderUIManagerDidEndBatchNotification = @"NativeRenderUIM
         if (!parentObjectView) {
             parentObjectView = [objectView parentComponent];
         }
-        [parentObjectView moveNativeRenderSubview:objectView toIndex:index];
+        [objectViews addObject:objectView];
+        [indexSet addIndex:index];
     }
+    [parentObjectView moveNativeRenderSubviews:objectViews toIndices:indexSet];
     [parentObjectView didUpdateNativeRenderSubviews];
     auto strongNodes = std::move(nodes);
     [self addUIBlock:^(NativeRenderImpl *renderContext, NSDictionary<NSNumber *,__kindof UIView *> *viewRegistry) {
         UIView *superView = nil;
+        NSMutableArray<UIView *> *views = [NSMutableArray arrayWithCapacity:strongNodes.size()];
+        NSMutableIndexSet *indexSet = [NSMutableIndexSet indexSet];
         for (auto node : strongNodes) {
-            int32_t index = node->GetIndex();
+            int32_t index = node->GetRenderInfo().index;
             int32_t componentTag = node->GetId();
             UIView *view = [viewRegistry objectForKey:@(componentTag)];
             if (!view) {
@@ -940,8 +965,10 @@ NSString *const NativeRenderUIManagerDidEndBatchNotification = @"NativeRenderUIM
             if (!superView) {
                 superView = [view parentComponent];
             }
-            [superView moveNativeRenderSubview:view toIndex:index];
+            [views addObject:view];
+            [indexSet addIndex:index];
         }
+        [superView moveNativeRenderSubviews:views toIndices:indexSet];
         [superView clearSortedSubviews];
         [superView didUpdateNativeRenderSubviews];
     }];

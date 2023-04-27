@@ -133,6 +133,21 @@
     subview.parentComponent = self;
 }
 
+- (void)insertNativerenderSubviews:(NSArray<id<NativeRenderComponentProtocol>> *)subviews atIndices:(NSIndexSet *)indexSet {
+    if (!subviews) {
+        return;
+    }
+    NSMutableArray *subcomponents = objc_getAssociatedObject(self, @selector(subcomponents));
+    if (!subcomponents) {
+        subcomponents = [NSMutableArray new];
+        objc_setAssociatedObject(self, @selector(subcomponents), subcomponents, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    }
+    [subcomponents insertObjects:subviews atIndexes:indexSet];
+    for (UIView *view in subviews) {
+        view.parentComponent = self;
+    }
+}
+
 - (void)moveNativeRenderSubview:(UIView *)subview toIndex:(NSInteger)atIndex {
     if (nil == subview) {
         return;
@@ -145,6 +160,18 @@
         [subviews removeObject:subview];
     }
     [self insertNativeRenderSubview:subview atIndex:atIndex];
+}
+
+- (void)moveNativeRenderSubviews:(NSArray<id<NativeRenderComponentProtocol>> *)subviews toIndices:(NSIndexSet *)indexSet {
+    if (nil == subviews) {
+        return;
+    }
+    NSMutableArray *subcomponents = objc_getAssociatedObject(self, @selector(subcomponents));
+    if (!subcomponents) {
+        return;
+    }
+    [subcomponents removeObjectsInArray:subviews];
+    [self insertNativerenderSubviews:subviews atIndices:indexSet];
 }
 
 - (void)removeNativeRenderSubview:(UIView *)subview {

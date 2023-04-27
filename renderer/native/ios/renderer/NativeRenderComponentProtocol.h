@@ -48,8 +48,10 @@ typedef void (^NativeRenderDirectEventBlock)(NSDictionary *body);
 - (NSArray<__kindof id<NativeRenderComponentProtocol>> *)subcomponents;
 
 - (void)insertNativeRenderSubview:(id<NativeRenderComponentProtocol>)subview atIndex:(NSInteger)atIndex;
+- (void)insertNativerenderSubviews:(NSArray<id<NativeRenderComponentProtocol>> *)subviews atIndices:(NSIndexSet *)indexSet;
 - (void)removeNativeRenderSubview:(id<NativeRenderComponentProtocol>)subview;
 - (void)moveNativeRenderSubview:(id<NativeRenderComponentProtocol>)subview toIndex:(NSInteger)atIndex;
+- (void)moveNativeRenderSubviews:(NSArray<id<NativeRenderComponentProtocol>> *)subviews toIndices:(NSIndexSet *)indexSet;
 - (void)removeFromNativeRenderSuperview;
 - (void)nativeRenderSetFrame:(CGRect)frame;
 - (NSNumber *)componentTagAtPoint:(CGPoint)point;
