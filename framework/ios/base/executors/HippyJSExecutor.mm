@@ -47,6 +47,7 @@
 #include <unordered_map>
 
 #include "driver/engine.h"
+#include "driver/js_driver_utils.h"
 #include "driver/napi/js_ctx.h"
 #include "driver/napi/js_ctx_value.h"
 #include "driver/napi/js_try_catch.h"
@@ -99,32 +100,40 @@ using WeakCtxValuePtr = std::weak_ptr<hippy::napi::CtxValue>;
     return _bridge;
 }
 
+static NSString *GetGlobalConfigJSONString(HippyBridge *__nonnull bridge, NSError **error) {
+    NSMutableDictionary *deviceInfo = [NSMutableDictionary dictionaryWithDictionary:[bridge deviceInfo]];
+    NSString *deviceName = [[UIDevice currentDevice] name];
+    NSString *clientId = HPMD5Hash([NSString stringWithFormat:@"%@%p", deviceName, bridge]);
+    NSDictionary *debugInfo = @{@"Debug" : @{@"debugClientId" : clientId}};
+    [deviceInfo addEntriesFromDictionary:debugInfo];
+    NSData *data = [NSJSONSerialization dataWithJSONObject:deviceInfo options:0 error:error];
+    if (*error) {
+        NSString *errorString =
+            [NSString stringWithFormat:@"device parse error:%@, deviceInfo:%@", [*error localizedFailureReason], deviceInfo];
+        NSError *error = HPErrorWithMessageAndModuleName(errorString, bridge.moduleName);
+        HippyBridgeFatal(error, bridge);
+    }
+    NSString *string = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+    return string;
+}
+
 - (void)setup {
     auto engine = [[HippyJSEnginesMapper defaultInstance] createJSEngineResourceForKey:self.enginekey];
-    const char *pName = [self.enginekey UTF8String] ?: "";
-    footstone::TimePoint startPoint = footstone::TimePoint::SystemNow();
-    auto scope = engine->GetEngine()->CreateScope(pName);
-    dispatch_semaphore_t scopeSemaphore = dispatch_semaphore_create(0);
+    NSError *JSONSerializationError = nil;
+    NSString *JSONString = GetGlobalConfigJSONString(self.bridge, &JSONSerializationError);
+    HPAssert(!JSONSerializationError, @"global config json string error");
+    footstone::string_view global_config = NSStringToU16StringView(JSONString);
     __weak HippyJSExecutor *weakSelf = self;
-    engine->GetEngine()->GetJsTaskRunner()->PostTask([weakSelf, scopeSemaphore, startPoint](){
+    dispatch_semaphore_t scopeSemaphore = dispatch_semaphore_create(0);
+    auto scopeCallback = [weakSelf, scopeSemaphore](std::shared_ptr<hippy::Scope> scope) {
         @autoreleasepool {
             HippyJSExecutor *strongSelf = weakSelf;
-            if (!strongSelf) {
+            if (!strongSelf || strongSelf.bridge) {
                 return;
             }
-            HippyBridge *bridge = strongSelf.bridge;
-            if (!bridge) {
-                return;
-            }
-            dispatch_semaphore_wait(scopeSemaphore, DISPATCH_TIME_FOREVER);
-            auto scope = strongSelf->_pScope;
-            scope->CreateContext();
+            strongSelf.pScope = scope;
+            dispatch_semaphore_signal(scopeSemaphore);
             auto context = scope->GetContext();
-            auto global_object = context->GetGlobalObject();
-            auto user_global_object_key = context->CreateString(kGlobalKey);
-            context->SetProperty(global_object, user_global_object_key, global_object);
-            auto hippy_key = context->CreateString(kHippyKey);
-            context->SetProperty(global_object, hippy_key, context->CreateObject());
             id<HippyContextWrapper> contextWrapper = CreateContextWrapper(context);
             contextWrapper.excpetionHandler = ^(id<HippyContextWrapper>  _Nonnull wrapper, NSString * _Nonnull message, NSArray<HPDriverStackFrame *> * _Nonnull stackFrames) {
                 HippyJSExecutor *strongSelf = weakSelf;
@@ -144,21 +153,8 @@ using WeakCtxValuePtr = std::weak_ptr<hippy::napi::CtxValue>;
                 HippyBridgeFatal(error, bridge);
             };
             strongSelf->_contextWrapper = contextWrapper;
-            NSMutableDictionary *deviceInfo = [NSMutableDictionary dictionaryWithDictionary:[bridge deviceInfo]];
-            NSString *deviceName = [[UIDevice currentDevice] name];
-            NSString *clientId = HPMD5Hash([NSString stringWithFormat:@"%@%p", deviceName, strongSelf]);
-            NSDictionary *debugInfo = @{@"Debug" : @{@"debugClientId" : clientId}};
-            [deviceInfo addEntriesFromDictionary:debugInfo];
-
             NSError *JSONSerializationError = nil;
-            NSData *data = [NSJSONSerialization dataWithJSONObject:deviceInfo options:0 error:&JSONSerializationError];
-            if (JSONSerializationError) {
-                NSString *errorString =
-                    [NSString stringWithFormat:@"device parse error:%@, deviceInfo:%@", [JSONSerializationError localizedFailureReason], deviceInfo];
-                NSError *error = HPErrorWithMessageAndModuleName(errorString, bridge.moduleName);
-                HippyBridgeFatal(error, bridge);
-            }
-            NSString *string = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+            NSString *string = GetGlobalConfigJSONString(strongSelf.bridge, &JSONSerializationError);
             [contextWrapper createGlobalObject:@"__HIPPYNATIVEGLOBAL__" withJsonValue:string];
             [contextWrapper registerFunction:@"nativeRequireModuleConfig" implementation:^id _Nullable(NSArray * _Nonnull arguments) {
                 NSString *moduleName = [arguments firstObject];
@@ -218,9 +214,9 @@ using WeakCtxValuePtr = std::weak_ptr<hippy::napi::CtxValue>;
             entry->SetHippyJsEngineInitStart(startPoint);
             entry->SetHippyJsEngineInitEnd(footstone::TimePoint::SystemNow());
         }
-    });
-    self.pScope = scope;
-    dispatch_semaphore_signal(scopeSemaphore);
+    };
+//    hippy::JsDriverUtils::InitInstance(engine->GetEngine(), <#const std::shared_ptr<VMInitParam> &param#>, <#const string_view &global_config#>, <#std::function<void (std::shared_ptr<Scope>)> &&scope_initialized_callback#>, <#const JsCallback &call_host_callback#>)
+    dispatch_semaphore_wait(scopeSemaphore, DISPATCH_TIME_FOREVER);
 #ifdef ENABLE_INSPECTOR
     HippyBridge *bridge = self.bridge;
     if (bridge && bridge.debugMode) {
