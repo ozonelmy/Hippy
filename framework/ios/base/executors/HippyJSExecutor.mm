@@ -123,9 +123,10 @@ static NSString *GetGlobalConfigJSONString(HippyBridge *__nonnull bridge, NSErro
     NSString *JSONString = GetGlobalConfigJSONString(self.bridge, &JSONSerializationError);
     HPAssert(!JSONSerializationError, @"global config json string error");
     footstone::string_view global_config = NSStringToU16StringView(JSONString);
-    __weak HippyJSExecutor *weakSelf = self;
     dispatch_semaphore_t scopeSemaphore = dispatch_semaphore_create(0);
-    auto scopeCallback = [weakSelf, scopeSemaphore](std::shared_ptr<hippy::Scope> scope) {
+    auto startPoint = footstone::TimePoint::SystemNow();
+    __weak HippyJSExecutor *weakSelf = self;
+    auto scopeCallback = [weakSelf, scopeSemaphore, startPoint](std::shared_ptr<hippy::Scope> scope) {
         @autoreleasepool {
             HippyJSExecutor *strongSelf = weakSelf;
             if (!strongSelf || strongSelf.bridge) {
@@ -199,7 +200,7 @@ static NSString *GetGlobalConfigJSONString(HippyBridge *__nonnull bridge, NSErro
             }, (__bridge void*)weakSelf);
             auto turbo_function = context->CreateFunction(turbo_wrapper);
             scope->SaveFunctionWrapper(std::move(turbo_wrapper));
-            context->SetProperty(global_object, context->CreateString("getTurboModule"), turbo_function);
+            context->SetProperty(context->GetGlobalObject(), context->CreateString("getTurboModule"), turbo_function);
             if (strongSelf.contextCreatedBlock) {
                 strongSelf.contextCreatedBlock(strongSelf->_contextWrapper);
             }
