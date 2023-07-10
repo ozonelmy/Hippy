@@ -295,7 +295,7 @@ class Scope : public std::enable_shared_from_this<Scope> {
 
   inline std::weak_ptr<UriLoader> GetUriLoader() { return loader_; }
 
-  inline void SetDomManager(std::shared_ptr<DomManager> dom_manager) {
+  inline void SetDomManager(std::weak_ptr<DomManager> dom_manager) {
     dom_manager_ = dom_manager;
   }
 

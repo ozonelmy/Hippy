@@ -267,23 +267,6 @@ dispatch_queue_t HippyBridgeQueue() {
         __weak HippyBridge *weakSelf = self;
         _moduleSetup = [[HippyModulesSetup alloc] initWithBridge:self extraProviderModulesBlock:_moduleProvider];
         _javaScriptExecutor = [[HippyJSExecutor alloc] initWithEngineKey:_engineKey bridge:self];
-        _javaScriptExecutor.contextCreatedBlock = ^(id<HippyContextWrapper> ctxWrapper){
-            HippyBridge *strongSelf = weakSelf;
-            if (strongSelf) {
-                dispatch_semaphore_wait(strongSelf.moduleSemaphore, DISPATCH_TIME_FOREVER);
-                NSString *moduleConfig = [strongSelf moduleConfig];
-                [ctxWrapper createGlobalObject:@"__hpBatchedBridgeConfig" withJsonValue:moduleConfig];
-#if HP_DEV
-                //default is yes when debug mode
-                [strongSelf setInspectable:YES];
-#endif //HIPPY_DEV
-            }
-        };
-        [_javaScriptExecutor setup];
-        if (_contextName) {
-            _javaScriptExecutor.contextName = _contextName;
-        }
-        _displayLink = [[HippyDisplayLink alloc] init];
         //The caller may attempt to look up a module immediately after creating the HippyBridge,
         //therefore the initialization of all modules cannot be placed in a sub-thread
 //        dispatch_async(HippyBridgeQueue(), ^{
@@ -291,14 +274,27 @@ dispatch_queue_t HippyBridgeQueue() {
             HippyBridge *strongSelf = weakSelf;
             if (strongSelf) {
                 dispatch_semaphore_signal(strongSelf.moduleSemaphore);
-                footstone::TimePoint endTime = footstone::TimePoint::SystemNow();
-                auto enty =
-                    strongSelf.javaScriptExecutor.pScope->GetPerformance()->PerformanceNavigation("hippyInit");
-                enty->SetHippyNativeInitStart(strongSelf->_startTime);
-                enty->SetHippyNativeInitEnd(endTime);
             }
         }];
 //        });
+        footstone::TimePoint endTime = footstone::TimePoint::SystemNow();
+
+        [_javaScriptExecutor setupWithCompletion:^(const std::shared_ptr<hippy::Scope> &scope) {
+            HippyBridge *strongSelf = weakSelf;
+            if (!strongSelf.valid) {
+                return;
+            }
+            if (scope->GetUriLoader().lock() != self.VFSUriLoader.lock()) {
+                scope->SetUriLoader(self.VFSUriLoader);
+            }
+            auto enty = scope->GetPerformance()->PerformanceNavigation("hippyInit");
+            enty->SetHippyNativeInitStart(strongSelf->_startTime);
+            enty->SetHippyNativeInitEnd(endTime);
+        }];
+        if (_contextName) {
+            _javaScriptExecutor.contextName = _contextName;
+        }
+        _displayLink = [[HippyDisplayLink alloc] init];
     } @catch (NSException *exception) {
         HippyBridgeHandleException(exception, self);
     }
@@ -424,16 +420,6 @@ dispatch_queue_t HippyBridgeQueue() {
 - (void)setVFSUriLoader:(std::weak_ptr<VFSUriLoader>)uriLoader {
     _uriLoader = uriLoader;
     [_javaScriptExecutor setUriLoader:uriLoader];
-#ifdef ENABLE_INSPECTOR
-    auto devtools_data_source = _javaScriptExecutor.pScope->GetDevtoolsDataSource();
-    auto strongLoader = uriLoader.lock();
-    if (devtools_data_source && strongLoader) {
-        auto notification = devtools_data_source->GetNotificationCenter()->network_notification;
-        auto devtools_handler = std::make_shared<hippy::devtools::DevtoolsHandler>();
-        devtools_handler->SetNetworkNotification(notification);
-        strongLoader->RegisterUriInterceptor(devtools_handler);
-    }
-#endif
 }
 
 - (std::weak_ptr<VFSUriLoader>)VFSUriLoader {
@@ -767,24 +753,7 @@ dispatch_queue_t HippyBridgeQueue() {
 
 - (void)setupDomManager:(std::shared_ptr<hippy::DomManager>)domManager
                   rootNode:(std::weak_ptr<hippy::RootNode>)rootNode {
-    __weak HippyBridge *weakSelf = self;
-    dispatch_block_t block = ^(void){
-        HippyBridge *strongSelf = weakSelf;
-        HPAssertParam(domManager);
-        if (!strongSelf || !domManager) {
-            return;
-        }
-        strongSelf->_javaScriptExecutor.pScope->SetDomManager(domManager);
-        strongSelf->_javaScriptExecutor.pScope->SetRootNode(rootNode);
-      #ifdef ENABLE_INSPECTOR
-        auto devtools_data_source = strongSelf->_javaScriptExecutor.pScope->GetDevtoolsDataSource();
-        if (devtools_data_source) {
-            strongSelf->_javaScriptExecutor.pScope->GetDevtoolsDataSource()->Bind(domManager);
-            devtools_data_source->SetRootNode(rootNode);
-        }
-      #endif
-    };
-    block();
+    [self.javaScriptExecutor setDomManager:domManager rootNode:rootNode];
 }
 
 - (BOOL)isValid {

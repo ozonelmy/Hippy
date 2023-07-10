@@ -62,6 +62,7 @@
 
 #ifdef ENABLE_INSPECTOR
 #include "devtools/devtools_data_source.h"
+#include "devtools/vfs/devtools_handler.h"
 #endif
 
 NSString *const HippyJSCThreadName = @"com.tencent.hippy.JavaScript";
@@ -81,7 +82,10 @@ using WeakCtxValuePtr = std::weak_ptr<hippy::napi::CtxValue>;
     id<HippyContextWrapper> _contextWrapper;
     NSMutableArray<dispatch_block_t> *_pendingCalls;
     __weak HippyBridge *_bridge;
+    std::weak_ptr<hippy::DomManager> _domManager;
+    std::weak_ptr<hippy::RootNode> _rootNode;
 #ifdef JS_JSC
+    NSString *_contextName;
     BOOL _isInspectable;
 #endif //JS_JSC
 }
@@ -106,6 +110,10 @@ static NSString *GetGlobalConfigJSONString(HippyBridge *__nonnull bridge, NSErro
     NSString *clientId = HPMD5Hash([NSString stringWithFormat:@"%@%p", deviceName, bridge]);
     NSDictionary *debugInfo = @{@"Debug" : @{@"debugClientId" : clientId}};
     [deviceInfo addEntriesFromDictionary:debugInfo];
+    
+    NSString *moduleConfig = [bridge moduleConfig];
+    [deviceInfo setObject:moduleConfig forKey:@"__hpBatchedBridgeConfig"];
+    
     NSData *data = [NSJSONSerialization dataWithJSONObject:deviceInfo options:0 error:error];
     if (*error) {
         NSString *errorString =
@@ -117,79 +125,77 @@ static NSString *GetGlobalConfigJSONString(HippyBridge *__nonnull bridge, NSErro
     return string;
 }
 
-- (void)setup {
+- (void)setupWithCompletion:(void (^)(const std::shared_ptr<hippy::Scope> &))completion {
     auto engine = [[HippyJSEnginesMapper defaultInstance] createJSEngineResourceForKey:self.enginekey];
     NSError *JSONSerializationError = nil;
     NSString *JSONString = GetGlobalConfigJSONString(self.bridge, &JSONSerializationError);
     HPAssert(!JSONSerializationError, @"global config json string error");
     footstone::string_view global_config = NSStringToU16StringView(JSONString);
-    dispatch_semaphore_t scopeSemaphore = dispatch_semaphore_create(0);
     auto startPoint = footstone::TimePoint::SystemNow();
     __weak HippyJSExecutor *weakSelf = self;
-    auto scopeCallback = [weakSelf, scopeSemaphore, startPoint](std::shared_ptr<hippy::Scope> scope) {
+    auto scopeCallback = [weakSelf, startPoint, completion](std::shared_ptr<hippy::Scope> scope) {
         @autoreleasepool {
             HippyJSExecutor *strongSelf = weakSelf;
-            if (!strongSelf || strongSelf.bridge) {
+            if (!strongSelf || !strongSelf.bridge) {
                 return;
             }
             strongSelf.pScope = scope;
-            dispatch_semaphore_signal(scopeSemaphore);
             auto context = scope->GetContext();
             id<HippyContextWrapper> contextWrapper = CreateContextWrapper(context);
             contextWrapper.excpetionHandler = ^(id<HippyContextWrapper>  _Nonnull wrapper, NSString * _Nonnull message, NSArray<HPDriverStackFrame *> * _Nonnull stackFrames) {
-                HippyJSExecutor *strongSelf = weakSelf;
-                if (!strongSelf) {
-                    return;
+                @autoreleasepool {
+                    HippyJSExecutor *strongSelf = weakSelf;
+                    if (!strongSelf || !strongSelf.bridge) {
+                        return;
+                    }
+                    NSDictionary *userInfo = @{
+                        HPFatalModuleName: strongSelf.bridge.moduleName?:@"unknown",
+                        NSLocalizedDescriptionKey:message?:@"unknown",
+                        HPJSStackTraceKey:stackFrames
+                    };
+                    NSError *error = [NSError errorWithDomain:HPErrorDomain code:2 userInfo:userInfo];
+                    HippyBridgeFatal(error, strongSelf.bridge);
                 }
-                HippyBridge *bridge = strongSelf.bridge;
-                if (!bridge) {
-                    return;
-                }
-                NSDictionary *userInfo = @{
-                    HPFatalModuleName: bridge.moduleName?:@"unknown",
-                    NSLocalizedDescriptionKey:message?:@"unknown",
-                    HPJSStackTraceKey:stackFrames
-                };
-                NSError *error = [NSError errorWithDomain:HPErrorDomain code:2 userInfo:userInfo];
-                HippyBridgeFatal(error, bridge);
             };
             strongSelf->_contextWrapper = contextWrapper;
             NSError *JSONSerializationError = nil;
             NSString *string = GetGlobalConfigJSONString(strongSelf.bridge, &JSONSerializationError);
             [contextWrapper createGlobalObject:@"__HIPPYNATIVEGLOBAL__" withJsonValue:string];
             [contextWrapper registerFunction:@"nativeRequireModuleConfig" implementation:^id _Nullable(NSArray * _Nonnull arguments) {
-                NSString *moduleName = [arguments firstObject];
-                if (moduleName) {
-                    HippyJSExecutor *strongSelf = weakSelf;
-                    if (!strongSelf.valid) {
-                        return nil;
+                @autoreleasepool {
+                    NSString *moduleName = [arguments firstObject];
+                    if (moduleName) {
+                        HippyJSExecutor *strongSelf = weakSelf;
+                        if (!strongSelf.valid) {
+                            return nil;
+                        }
+                        HippyBridge *bridge = strongSelf.bridge;
+                        if (!bridge) {
+                            return nil;
+                        }
+                        NSArray *result = [bridge configForModuleName:moduleName];
+                        return HPNullIfNil(result);
                     }
-                    HippyBridge *bridge = strongSelf.bridge;
-                    if (!bridge) {
-                        return nil;
-                    }
-                    NSArray *result = [bridge configForModuleName:moduleName];
-                    return HPNullIfNil(result);
+                    return nil;
                 }
-                return nil;
             }];
             [contextWrapper registerFunction:@"nativeFlushQueueImmediate" implementation:^id _Nullable(NSArray * _Nonnull arguments) {
-                NSArray<NSArray *> *calls = [arguments firstObject];
-                HippyJSExecutor *strongSelf = weakSelf;
-                if (!strongSelf.valid || !calls) {
+                @autoreleasepool {
+                    NSArray<NSArray *> *calls = [arguments firstObject];
+                    HippyJSExecutor *strongSelf = weakSelf;
+                    if (!strongSelf.valid || !calls || !strongSelf.bridge) {
+                        return nil;
+                    }
+                    [strongSelf.bridge handleBuffer:calls batchEnded:NO];
                     return nil;
                 }
-                HippyBridge *bridge = strongSelf.bridge;
-                if (!bridge) {
-                    return nil;
-                }
-                [bridge handleBuffer:calls batchEnded:NO];
-                return nil;
             }];
             auto turbo_wrapper = std::make_unique<hippy::FunctionWrapper>([](hippy::CallbackInfo& info, void* data) {
                 @autoreleasepool {
-                    //todo
                     HippyJSExecutor *strongSelf = (__bridge HippyJSExecutor*)data;
+                    if (!strongSelf) {
+                        return;
+                    }
                     const auto &context = strongSelf.pScope->GetContext();
                     if (context->IsString(info[0])) {
                         NSString *name = ObjectFromCtxValue(context, info[0]);
@@ -201,32 +207,41 @@ static NSString *GetGlobalConfigJSONString(HippyBridge *__nonnull bridge, NSErro
             auto turbo_function = context->CreateFunction(turbo_wrapper);
             scope->SaveFunctionWrapper(std::move(turbo_wrapper));
             context->SetProperty(context->GetGlobalObject(), context->CreateString("getTurboModule"), turbo_function);
-            if (strongSelf.contextCreatedBlock) {
-                strongSelf.contextCreatedBlock(strongSelf->_contextWrapper);
-            }
-            scope->SyncInitialize();
             strongSelf.ready = YES;
+            
+            [strongSelf applyInspecable];
+            [strongSelf applyContextName];
+            [strongSelf applyDomManagerAndRootNode];
+#ifdef ENABLE_INSPECTOR
+            HippyBridge *bridge = strongSelf.bridge;
+            if (bridge && bridge.debugMode) {
+                NSString *wsURL = [strongSelf completeWSURLWithBridge:bridge];
+                auto workerManager = std::make_shared<footstone::WorkerManager>(1);
+                auto devtools_data_source = std::make_shared<hippy::devtools::DevtoolsDataSource>([wsURL UTF8String], workerManager);
+                strongSelf.pScope->SetDevtoolsDataSource(devtools_data_source);
+            }
+#endif
+            auto entry = scope->GetPerformance()->PerformanceNavigation("hippyInit");
+            entry->SetHippyJsEngineInitStart(startPoint);
+            entry->SetHippyJsEngineInitEnd(footstone::TimePoint::SystemNow());
+
+            if (completion) {
+                completion(scope);
+            }
+            
+            //begin load js actions, maybe including loading bundles
             NSArray<dispatch_block_t> *pendingCalls = [strongSelf->_pendingCalls copy];
             [pendingCalls enumerateObjectsUsingBlock:^(dispatch_block_t  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
                 [strongSelf executeBlockOnJavaScriptQueue:obj];
             }];
             [strongSelf->_pendingCalls removeAllObjects];
-            auto entry = scope->GetPerformance()->PerformanceNavigation("hippyInit");
-            entry->SetHippyJsEngineInitStart(startPoint);
-            entry->SetHippyJsEngineInitEnd(footstone::TimePoint::SystemNow());
         }
     };
-//    hippy::JsDriverUtils::InitInstance(engine->GetEngine(), <#const std::shared_ptr<VMInitParam> &param#>, <#const string_view &global_config#>, <#std::function<void (std::shared_ptr<Scope>)> &&scope_initialized_callback#>, <#const JsCallback &call_host_callback#>)
-    dispatch_semaphore_wait(scopeSemaphore, DISPATCH_TIME_FOREVER);
-#ifdef ENABLE_INSPECTOR
-    HippyBridge *bridge = self.bridge;
-    if (bridge && bridge.debugMode) {
-        NSString *wsURL = [self completeWSURLWithBridge:bridge];
-        auto workerManager = std::make_shared<footstone::WorkerManager>(1);
-        auto devtools_data_source = std::make_shared<hippy::devtools::DevtoolsDataSource>([wsURL UTF8String], workerManager);
-        self.pScope->SetDevtoolsDataSource(devtools_data_source);
-    }
-#endif
+    hippy::JsDriverUtils::InitInstance(engine->GetEngine(), std::make_shared<hippy::VM::VMInitParam>(), global_config, std::move(scopeCallback), JSCallbackFunction);
+}
+
+static void JSCallbackFunction(hippy::CallbackInfo& info, void* data) {
+    
 }
 
 - (instancetype)initWithEngineKey:(NSString *)engineKey bridge:(HippyBridge *)bridge {
@@ -247,8 +262,47 @@ static NSString *GetGlobalConfigJSONString(HippyBridge *__nonnull bridge, NSErro
 }
 
 - (void)setUriLoader:(std::weak_ptr<hippy::vfs::UriLoader>)uriLoader {
-    if (self.pScope->GetUriLoader().lock() != uriLoader.lock()) {
+    if (self.pScope && self.pScope->GetUriLoader().lock() != uriLoader.lock()) {
         self.pScope->SetUriLoader(uriLoader);
+#ifdef ENABLE_INSPECTOR
+        auto devtools_data_source = self.pScope->GetDevtoolsDataSource();
+        auto strongLoader = uriLoader.lock();
+        if (devtools_data_source && strongLoader) {
+            auto notification = devtools_data_source->GetNotificationCenter()->network_notification;
+            auto devtools_handler = std::make_shared<hippy::devtools::DevtoolsHandler>();
+            devtools_handler->SetNetworkNotification(notification);
+            strongLoader->RegisterUriInterceptor(devtools_handler);
+        }
+#endif
+    }
+}
+
+- (void)setDomManager:(std::weak_ptr<hippy::DomManager>)domManager rootNode:(std::weak_ptr<hippy::RootNode>)rootNode {
+    _domManager = domManager;
+    _rootNode = rootNode;
+    [self applyDomManagerAndRootNode];
+}
+
+- (void)applyDomManagerAndRootNode {
+    if (self.pScope) {
+        std::weak_ptr<hippy::Scope> weakScope = self.pScope;
+        auto domManager = _domManager;
+        auto rootNode = _rootNode;
+        [self executeBlockOnJavaScriptQueue:^{
+            auto scope = weakScope.lock();
+            if (!scope) {
+                return;
+            }
+            scope->SetDomManager(domManager);
+            scope->SetRootNode(rootNode);
+#ifdef ENABLE_INSPECTOR
+            auto devtools_data_source = scope->GetDevtoolsDataSource();
+            if (devtools_data_source) {
+                scope->GetDevtoolsDataSource()->Bind(domManager);
+                devtools_data_source->SetRootNode(rootNode);
+            }
+#endif
+        }];
     }
 }
 
@@ -364,10 +418,18 @@ static NSString *GetGlobalConfigJSONString(HippyBridge *__nonnull bridge, NSErro
 // clang-format off
 - (void)setContextName:(NSString *)contextName {
 #ifdef JS_JSC
-    if (!contextName) {
+    _contextName = [contextName copy];
+    [self applyContextName];
+#endif //JS_JSC
+}
+
+- (void)applyContextName {
+#ifdef JS_JSC
+    if (!self.pScope) {
         return;
     }
     WeakCtxPtr weak_ctx = self.pScope->GetContext();
+    NSString *contextName = [_contextName copy];
     [self executeBlockOnJavaScriptQueue:^{
         @autoreleasepool {
             SharedCtxPtr context = weak_ctx.lock();
@@ -389,9 +451,18 @@ static NSString *GetGlobalConfigJSONString(HippyBridge *__nonnull bridge, NSErro
 - (void)setInspecable:(BOOL)inspectable {
 #ifdef JS_JSC
     _isInspectable = inspectable;
+    [self applyInspecable];
+#endif //JS_JSC
+}
+
+- (void)applyInspecable {
 #if defined(__IPHONE_16_4) && __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_16_4
     if (@available(iOS 16.4, *)) {
+        if (!self.pScope) {
+            return;
+        }
         WeakCtxPtr weak_ctx = self.pScope->GetContext();
+        BOOL inspectable = _isInspectable;
         [self executeBlockOnJavaScriptQueue:^{
             @autoreleasepool {
                 SharedCtxPtr context = weak_ctx.lock();
@@ -405,7 +476,6 @@ static NSString *GetGlobalConfigJSONString(HippyBridge *__nonnull bridge, NSErro
         }];
     }
 #endif //defined(__IPHONE_16_4) && __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_16_4
-#endif //JS_JSC
 }
 // clang-format on
 

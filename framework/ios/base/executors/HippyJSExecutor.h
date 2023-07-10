@@ -42,12 +42,15 @@ inline namespace vfs {
 class UriLoader;
 }
 
+inline namespace dom {
+class DomManager;
+class RootNode;
+}
+
 }
 
 @class HippyBridge;
 @protocol HippyContextWrapper;
-
-typedef void (^HippyContextCreatedBlock)(id<HippyContextWrapper>);
 
 /**
  * Default name for the JS thread
@@ -74,15 +77,15 @@ HP_EXTERN NSString *const HippyJSCThreadName;
 
 @property (nonatomic, copy) NSString *contextName;
 
-@property(nonatomic, copy) HippyContextCreatedBlock contextCreatedBlock;
-
 - (instancetype)initWithEngineKey:(NSString *)engineKey bridge:(HippyBridge *)bridge;
 
 /**
  * Used to set up the executor after the bridge has been fully initialized.
  * Do any expensive setup in this method instead of `-init`.
  */
-- (void)setup;
+- (void)setupWithCompletion:(void (^)(const std::shared_ptr<hippy::Scope> &))completion;
+
+- (void)setDomManager:(std::weak_ptr<hippy::DomManager>)domManager rootNode:(std::weak_ptr<hippy::RootNode>)rootNode;
 
 - (void)setSandboxDirectory:(NSString *)directory;
 
